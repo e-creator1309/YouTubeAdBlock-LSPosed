@@ -3,16 +3,21 @@
 Minimal LSPosed module for the official YouTube app. One hook, nothing else.
 
 ## What it does
-Blocks known Google ad-network hosts (doubleclick.net, googlesyndication.com, etc.)
-by hooking java.net.InetAddress.getAllByName/getByName and throwing
-UnknownHostException for those hosts. YouTube's ad-request network calls fail
-silently, same as if the host did not resolve - playback is unaffected.
+1. **Ad blocking** - blocks known Google ad-network hosts (doubleclick.net,
+   googlesyndication.com, etc.) by hooking java.net.InetAddress.getAllByName/
+   getByName and throwing UnknownHostException for those hosts. Ad requests
+   fail silently, same as if the host did not resolve.
+2. **Background playback** - keeps video/audio playing after you lock the
+   screen or leave the app (home button / switch apps), by no-opping
+   Activity.onUserLeaveHint()/moveTaskToBack() and holding a partial wake
+   lock so the CPU doesn't sleep mid-playback.
 
-## Why this approach (not hooking YouTube's own ad classes)
-YouTube's internal ad-serving classes are R8-obfuscated and renamed on every
-release, so hooking them by class/method name breaks every update and needs
-re-reversing the APK each time. Hooking the public InetAddress API is stable
-across every YouTube version because the app cannot rename a system class.
+## Why this approach
+Both features hook stable, public Android framework classes
+(java.net.InetAddress, android.app.Activity) instead of YouTube's own
+obfuscated/renamed internals. YouTube's internal classes change every
+release and would need re-reverse-engineering each update; the Android
+framework classes they're built on never change.
 
 ## Build
 ```
@@ -29,7 +34,12 @@ the project in Android Studio, which generates it automatically.)
 3. Force-stop and reopen YouTube.
 
 ## Limitations
-- Blocks ad network requests, not in-app UI ad slots - some placeholder/empty
-  ad views may still flash briefly since the app still tries to render them.
-- Host list is a starting set; add more domains to BLOCKED_HOSTS in
-  AdBlockHook.java as needed.
+- Ad blocking: blocks network requests, not in-app UI ad slots - some
+  placeholder/empty ad views may still flash briefly. Host list is a
+  starting set; add more domains to BLOCKED_HOSTS in AdBlockHook.java.
+- Background playback: no-ops onUserLeaveHint/moveTaskToBack app-wide for
+  YouTube, which is a blunt instrument - it's what lets video keep playing,
+  but it also means the app never gets the "user left" signal for anything
+  else. If you notice odd behavior elsewhere in the app, that hook is why.
+- Background playback over long periods will use more battery due to the
+  held wake lock; this is expected since it's what keeps the CPU alive.

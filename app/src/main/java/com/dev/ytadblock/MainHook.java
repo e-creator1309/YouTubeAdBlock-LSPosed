@@ -1,6 +1,7 @@
 package com.dev.ytadblock;
 
 import com.dev.ytadblock.hooks.AdBlockHook;
+import com.dev.ytadblock.hooks.BackgroundPlaybackHook;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
@@ -22,5 +23,6 @@ public class MainHook implements IXposedHookLoadPackage, IXposedHookZygoteInit {
 
         XposedBridge.log("[YTAdBlock] handleLoadPackage - hooking YouTube");
         AdBlockHook.init(lpparam.classLoader);
+        BackgroundPlaybackHook.init(lpparam.classLoader);
     }
 }
